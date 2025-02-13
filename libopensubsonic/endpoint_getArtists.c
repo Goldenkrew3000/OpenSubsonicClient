@@ -2,10 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <cjson/cJSON.h>
+#include "../logger.h"
 #include "endpoint_getArtists.h"
 
 // Parse the JSON returned from the /rest/getArtists endpoint
-void opensubsonic_getArtists_parse(char* data, opensubsonic_getArtists_struct* getArtistsStruct) {
+// Returns 1 if failure occured, else 0
+int opensubsonic_getArtists_parse(char* data, opensubsonic_getArtists_struct* getArtistsStruct) {
     // Initialize struct variables
     getArtistsStruct->status = NULL;
     getArtistsStruct->artistCount = 0;
@@ -15,16 +17,16 @@ void opensubsonic_getArtists_parse(char* data, opensubsonic_getArtists_struct* g
     // Parse the JSON
     cJSON* root = cJSON_Parse(data);
     if (root == NULL) {
-        printf("Error parsing root in opensubsonic_getArtists_parse()\n");
-        exit(EXIT_FAILURE);
+        logger_log_error(__func__, "Error parsing JSON.");
+        return 1;
     }
 
     // Make an object from subsonic-response
     cJSON* subsonic_root = cJSON_GetObjectItemCaseSensitive(root, "subsonic-response");
     if (subsonic_root == NULL) {
-        printf("Error in opensubsonic_getArtists_parse() - subsonic-response does not exist.\n");
+        logger_log_error(__func__, "Error handling JSON - subsonic-response does not exist.");
         cJSON_Delete(root);
-        return;
+        return 1;
     }
 
     cJSON* subsonic_status = cJSON_GetObjectItemCaseSensitive(subsonic_root, "status");
@@ -35,9 +37,9 @@ void opensubsonic_getArtists_parse(char* data, opensubsonic_getArtists_struct* g
     // Make an object from artists
     cJSON* artists_root = cJSON_GetObjectItemCaseSensitive(subsonic_root, "artists");
     if (artists_root == NULL) {
-        printf("Error in opensubsonic_getArtists_parse() - artists does not exist.\n");
+        logger_log_error(__func__, "Error handling JSON - artists does not exist.");
         cJSON_Delete(root);
-        return;
+        return 1;
     }
 
     // Fetch the last modified time of the artist list
@@ -49,9 +51,9 @@ void opensubsonic_getArtists_parse(char* data, opensubsonic_getArtists_struct* g
     // Make an object from index
     cJSON* index_root = cJSON_GetObjectItemCaseSensitive(artists_root, "index");
     if (index_root == NULL) {
-        printf("Error in opensubsonic_getArtists_parse() - index does not exist.\n");
+        logger_log_error(__func__, "Error handling JSON - index does not exist.");
         cJSON_Delete(root);
-        return;
+        return 1;
     }
 
     // Get the amount of artists present
@@ -106,10 +108,12 @@ void opensubsonic_getArtists_parse(char* data, opensubsonic_getArtists_struct* g
     }
 
     cJSON_Delete(root);
+    return 0;
 }
 
 // Free the dynamically allocated elements of the opensubsonic_getArtists_struct structure and the opensubsonic_getArtists_artist_struct array structs.
 void opensubsonic_getArtists_struct_free(opensubsonic_getArtists_struct* getArtistsStruct) {
+    logger_log_general(__func__, "Freeing /getArtists endpoint heap objects.");
     if (getArtistsStruct->status) { free(getArtistsStruct->status); }
     for (size_t i = 0; i < getArtistsStruct->artistCount; i++) {
         if (getArtistsStruct->artists[i].name) { free(getArtistsStruct->artists[i].name); }

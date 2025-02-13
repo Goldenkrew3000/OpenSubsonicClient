@@ -1,0 +1,4 @@
+Functions implemented into libopensubsonic:
+/ping
+/getArtists
+/getCoverArt - NOT WORKING PROPERLY ATM

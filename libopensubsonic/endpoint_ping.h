@@ -14,7 +14,7 @@ typedef struct {
     char* errorMessage;
 } opensubsonic_ping_struct;
 
-void opensubsonic_ping_parse(char* data, opensubsonic_ping_struct* pingStruct);
+int opensubsonic_ping_parse(char* data, opensubsonic_ping_struct* pingStruct);
 void opensubsonic_ping_struct_free(opensubsonic_ping_struct* pingStruct);
 
 #endif

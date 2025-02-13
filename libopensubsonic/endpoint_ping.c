@@ -2,15 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <cjson/cJSON.h>
+#include "../logger.h"
 #include "endpoint_ping.h"
 
-/*
-// {"subsonic-response":{"status":"ok","version":"1.16.1","type":"navidrome","serverVersion":"0.53.1-FREEBSD (1ba390a)","openSubsonic":true}}
-// {"subsonic-response":{"status":"failed","version":"1.16.1","type":"navidrome","serverVersion":"0.53.1-FREEBSD (1ba390a)","openSubsonic":true,"error":{"code":40,"message":"Wrong username or password"}}}
-*/
-
 // Parse the JSON returned from the /rest/ping endpoint
-void opensubsonic_ping_parse(char* data, opensubsonic_ping_struct* pingStruct) {
+// Returns 1 if failure occured, else 0
+int opensubsonic_ping_parse(char* data, opensubsonic_ping_struct* pingStruct) {
     // Initialize struct variables
     pingStruct->status = NULL;
     pingStruct->version = NULL;
@@ -24,16 +21,16 @@ void opensubsonic_ping_parse(char* data, opensubsonic_ping_struct* pingStruct) {
     // Parse the JSON
     cJSON* root = cJSON_Parse(data);
     if (root == NULL) {
-        printf("Error parsing root in opensubsonic_ping_parse()\n");
-        exit(EXIT_FAILURE);
+        logger_log_error(__func__, "Error parsing JSON.");
+        return 1;
     }
 
     // Make an object from subsonic-response
     cJSON* subsonic_root = cJSON_GetObjectItemCaseSensitive(root, "subsonic-response");
     if (subsonic_root == NULL) {
-        printf("Error in opensubsonic_ping_parse() - subsonic-response does not exist.\n");
+        logger_log_error(__func__, "Error handling JSON - subsonic-response does not exist.");
         cJSON_Delete(root);
-        return;
+        return 1;
     }
 
     cJSON* subsonic_status = cJSON_GetObjectItemCaseSensitive(subsonic_root, "status");
@@ -59,8 +56,6 @@ void opensubsonic_ping_parse(char* data, opensubsonic_ping_struct* pingStruct) {
     cJSON* subsonic_server_opensubsonic_capable = cJSON_GetObjectItemCaseSensitive(subsonic_root, "openSubsonic");
     if (cJSON_IsBool(subsonic_server_opensubsonic_capable)) {
         pingStruct->openSubsonicCapable = cJSON_IsTrue(subsonic_server_opensubsonic_capable); // TODO Verify if this works
-    } else {
-        pingStruct->openSubsonicCapable = false;
     }
 
     // Check if an error is present
@@ -68,10 +63,11 @@ void opensubsonic_ping_parse(char* data, opensubsonic_ping_struct* pingStruct) {
     if (subsonic_error == NULL) {
         // Error did not occur, return
         cJSON_Delete(root);
-        return;
+        return 0;
     }
     pingStruct->error = true;
 
+    // From this point on, error has occured, capture error information
     cJSON* subsonic_error_code = cJSON_GetObjectItemCaseSensitive(subsonic_error, "code");
     if (cJSON_IsNumber(subsonic_error_code)) {
         pingStruct->errorCode = subsonic_error_code->valueint;
@@ -82,11 +78,16 @@ void opensubsonic_ping_parse(char* data, opensubsonic_ping_struct* pingStruct) {
         pingStruct->errorMessage = strdup(subsonic_error_message->valuestring);
     }
 
+    // Print error
+    logger_log_error(__func__, "Error noted in JSON - Code %d: %s", pingStruct->errorCode, pingStruct->errorMessage);
+
     cJSON_Delete(root);
+    return 1;
 }
 
 // Free the dynamically allocated elements of the opensubsonic_ping_struct structure
 void opensubsonic_ping_struct_free(opensubsonic_ping_struct* pingStruct) {
+    logger_log_general(__func__, "Freeing /ping endpoint heap objects.");
     if (pingStruct->status) { free(pingStruct->status); }
     if (pingStruct->version) { free(pingStruct->version); }
     if (pingStruct->serverType) { free(pingStruct->serverType); }
