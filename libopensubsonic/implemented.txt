@@ -1,4 +1,8 @@
 Functions implemented into libopensubsonic:
-/ping
-/getArtists
+/ping - DONE
+/getArtists - DONE
+/getArtist - DONE
+/getAlbum
+/getSong
+/getLyricsBySongId
 /getCoverArt - NOT WORKING PROPERLY ATM

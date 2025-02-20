@@ -71,6 +71,32 @@ int opensubsonic_getArtist(const char* protocol_ptr, const char* server_ptr, con
     return rc;
 }
 
+// Contact the /rest/getAlbum endpoint
+int opensubsonic_getAlbum(const char* protocol_ptr, const char* server_ptr, const char* user_ptr, char* login_token_ptr, char* login_salt_ptr, const char* opensubsonic_version_ptr, const char* client_name_ptr, char* id, char** response) {
+    // Generate full URL, perform HTTP GET, and free the full URL
+    int rc = 0;
+    char* full_url = malloc(256);
+    snprintf(full_url, 256, "%s://%s/rest/getAlbum?u=%s&t=%s&s=%s&f=json&v=%s&c=%s&id=%s", protocol_ptr, server_ptr, user_ptr, login_token_ptr, login_salt_ptr, opensubsonic_version_ptr, client_name_ptr, id);
+    rc = opensubsonic_http_json_get(full_url, response);
+    free(full_url);
+    return rc;
+}
+
+
+// Contact the /rest/getLyricsBySongId endpoint
+int opensubsonic_getLyricsBySongId(const char* protocol_ptr, const char* server_ptr, const char* user_ptr, char* login_token_ptr, char* login_salt_ptr, const char* opensubsonic_version_ptr, const char* client_name_ptr, char* id, char** response) {
+    // Generate full URL, perform HTTP GET, and free the full URL
+    int rc = 0;
+    char* full_url = malloc(256);
+    snprintf(full_url, 256, "%s://%s/rest/getLyricsBySongId?u=%s&t=%s&s=%s&f=json&v=%s&c=%s&id=%s", protocol_ptr, server_ptr, user_ptr, login_token_ptr, login_salt_ptr, opensubsonic_version_ptr, client_name_ptr, id);
+    rc = opensubsonic_http_json_get(full_url, response);
+    free(full_url);
+    return rc;
+}
+
+
+
+
 // TODO COVER ART - Returns JSON on error.
 // {"subsonic-response":{"status":"failed","version":"1.16.1","type":"navidrome","serverVersion":"0.53.1-FREEBSD (1ba390a)","openSubsonic":true,"error":{"code":70,"message":"Artwork not found"}}}
 // Contact the /rest/getCoverArt endpoint (Returns binary data)

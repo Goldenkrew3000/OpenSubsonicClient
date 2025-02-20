@@ -10,6 +10,8 @@ typedef struct {
 
 typedef struct {
     char* status;
+    int errorCode;
+    char* errorMessage;
     int artistCount;
     long lastModified;
     opensubsonic_getArtists_artist_struct* artists;

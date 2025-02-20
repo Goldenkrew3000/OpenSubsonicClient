@@ -6,11 +6,13 @@
 #include "libopensubsonic/endpoint_ping.h"
 #include "libopensubsonic/endpoint_getArtists.h"
 #include "libopensubsonic/endpoint_getArtist.h"
+#include "libopensubsonic/endpoint_getAlbum.h"
+#include "libopensubsonic/endpoint_getLyricsBySongId.h"
 
 // 149 bytes in total (without padding)
 const char* openSubSonicUsername = "admin"; // 32 byte limit
-const char* openSubSonicPassword = "password"; // 32 byte limit
-const char* openSubSonicServer = "192.168.5.250:4533"; // 38 byte limit (32 for the domain, 1 for colon, 5 for the port)
+const char* openSubSonicPassword = ""; // 32 byte limit
+const char* openSubSonicServer = ""; // 38 byte limit (32 for the domain, 1 for colon, 5 for the port)
 const char* openSubSonicProtocol = "http"; // 5 byte limit (http / https)
 const char* openSubSonicVersion = "1.8.0"; // 10 byte limit
 const char* openSubSonicClientName = "MalextyClient"; // 32 byte limit
@@ -96,18 +98,60 @@ int main() {
         getArtistsStruct.artists[i].coverArt, getArtistsStruct.artists[i].albumCount);
     }
 
-    char* lmao = NULL;
-    char* artist_id = "95a5c13aa2ebd2fa5f8434880215bdfc";
-    opensubsonic_getArtist(openSubSonicProtocol, openSubSonicServer, openSubSonicUsername, openSubSonicLoginToken, openSubSonicLoginSalt, openSubSonicVersion, openSubSonicClientName, artist_id, &lmao);
-
+    // Fetch AKMU info from the /getArtist endpoint
+    logger_log_general(__func__, "Fetching info about AKMU from the /getArtist endpoint...");
+    char* opensubsonic_getArtist_res = NULL;
     opensubsonic_getArtist_struct getArtistStruct;
-    opensubsonic_getArtist_parse(lmao, &getArtistStruct);
+    char* artist_id = "95a5c13aa2ebd2fa5f8434880215bdfc";
+    for (size_t retry = 0; retry < 3; retry++) {
+        rc = opensubsonic_getArtist(openSubSonicProtocol, openSubSonicServer, openSubSonicUsername, openSubSonicLoginToken, openSubSonicLoginSalt, openSubSonicVersion, openSubSonicClientName, artist_id, &opensubsonic_getArtist_res);
+        if (rc == 600) {
+            if (retry < 2) {
+                logger_log_error(__func__, "Retrying...");
+            } else {
+                logger_log_error(__func__, "Critical error has occured while attempting to download, exiting.");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            break;
+        }
+    }
+    rc = opensubsonic_getArtist_parse(opensubsonic_getArtist_res, &getArtistStruct);
+    if (rc != 0) {
+        logger_log_error(__func__, "Critical error has occured while attempting to parse JSON.");
+        exit(EXIT_FAILURE);
+    }
+    free(opensubsonic_getArtist_res);
+
     for (size_t i = 0; i < 3; i++) {
-        printf("%s\n", getArtistStruct.albums[i].id);
+        printf("%s\n", getArtistStruct.albums[i].title);
     }
 
+    // Fetch 'Love Lee - Single' info from the /getAlbum endpoint
+    logger_log_general(__func__, "Fetching info about an album from the /getAlbum endpoint...");
+    char* opensubsonic_getAlbum_res = NULL;
+    opensubsonic_getAlbum_struct getAlbumStruct;
+    char* album_id = "0c6ac19d125c0c01258e32f39ebb824c";
+    opensubsonic_getAlbum(openSubSonicProtocol, openSubSonicServer, openSubSonicUsername, openSubSonicLoginToken, openSubSonicLoginSalt, openSubSonicVersion, openSubSonicClientName, album_id, &opensubsonic_getAlbum_res);
+    if (opensubsonic_getAlbum_res == NULL) {
+        printf("cauight openbsd erro\n");
+    } else {
+        printf("not null %s\n", opensubsonic_getAlbum_res);
+    }
+    opensubsonic_getAlbum_parse(opensubsonic_getAlbum_res, &getAlbumStruct);
+    free(opensubsonic_getAlbum_res);
 
 
+
+
+    // Fetch -- from the /getLyricsBySongId endpoint (Opensubsonic ONLY)
+    /*
+    char* opensubsonic_getLyricsBySongId_res = NULL;
+    char* lyrics_song_id = "1923f47530cf919848414e79dbbe7f84";
+    opensubsonic_getLyricsBySongId(openSubSonicProtocol, openSubSonicServer, openSubSonicUsername, openSubSonicLoginToken, openSubSonicLoginSalt, openSubSonicVersion, openSubSonicClientName, lyrics_song_id, &opensubsonic_getLyricsBySongId_res);
+    printf("%s\n", opensubsonic_getLyricsBySongId_res);
+    free(opensubsonic_getLyricsBySongId_res);
+    */
 
 
     /*
@@ -140,6 +184,8 @@ int main() {
     // Free structs
     opensubsonic_ping_struct_free(&pingStruct);
     opensubsonic_getArtists_struct_free(&getArtistsStruct);
+    opensubsonic_getArtist_struct_free(&getArtistStruct);
+    opensubsonic_getAlbum_struct_free(&getAlbumStruct);
 
     // Free login salt and token
     free(openSubSonicLoginSalt);

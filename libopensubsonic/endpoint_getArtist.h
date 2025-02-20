@@ -6,6 +6,7 @@ typedef struct {
     char* title;
     char* name;
     char* album;
+    char* artist;
     int yearReleased;
     char* genre;
     char* coverArt;
@@ -13,11 +14,12 @@ typedef struct {
     int playCount;
     char* dateAdded;
     int songCount;
-    int bpm; // Seems to be always 0, although might be my special situation
 } opensubsonic_getArtist_album_struct;
 
 typedef struct {
     char* status;
+    int errorCode;
+    char* errorMessage;
     char* artistId;
     char* artistName;
     char* coverArt;
